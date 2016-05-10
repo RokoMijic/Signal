@@ -3,7 +3,7 @@ library(dplyr)
 load_clean_housing_data = function()
 {
   
-  rm_raw = read.csv('rightmove1_0.csv')
+  rm_raw = read.csv('rightmove1_1.csv')
   rm_proc = rm_raw
   
   rm_proc = rm_proc[rm_proc$excluded == 0,]                 #lose excluded houses
@@ -32,12 +32,21 @@ load_normalized_housing_data = function()
   
 }
 
+
+
 load_just_location_price = function()
 {
-  rm_ml = load_normalized_housing_data()
+
+  rm_selected = dplyr::select( load_normalized_housing_data(), starts_with("lat"), starts_with("long"), num_latitude, num_longitude, starts_with("price")  ) 
   
-  return(select(rm_ml,starts_with("lat"), starts_with("long"),starts_with("price")  ))
+  rm_cleaned = rm_selected[rm_selected$num_latitude > -3 & rm_selected$num_latitude < 3 & rm_selected$num_longitude > -3 & rm_selected$num_longitude < 3 ,]
+  
+  return(  data.frame(rm_cleaned)   )
 }
+
+
+
+
 
   
 
