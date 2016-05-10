@@ -1,4 +1,7 @@
+################ requires Load_clean_housing_data.R for loading the data
+
 library(neuralnet)
+library(dplyr)
 
 rm_loc_price = load_just_location_price()
 
@@ -6,7 +9,11 @@ rm_loc_price = load_just_location_price()
 
 rm_not_numloc = dplyr::select(rm_loc_price, -num_longitude, -num_latitude )
 
-head(rm_not_numloc)
+nrow(rm_not_numloc)
+
+
+
+
 
 
 
@@ -24,6 +31,11 @@ pricenet6 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6
 
 pricenet12 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
                        data = rm_not_numloc, hidden = c(12,4), lifesign = "full", linear.output = FALSE, threshold = 0.1)
+
+pricenet14 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
+                        data = rm_not_numloc, hidden = c(14,4), lifesign = "full", linear.output = FALSE, threshold = 0.1)
+
+
 
 
 
