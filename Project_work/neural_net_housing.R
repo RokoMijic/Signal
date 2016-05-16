@@ -5,54 +5,32 @@ source('./Week2/resampling_utils.R')
 
 
 
+library(NeuralNetTools)
 library(neuralnet)
 library(dplyr)
-
-rm_loc_price = load_just_location_price()
-
-################# data is loaded ################
-
-rm_not_numloc = dplyr::select(rm_loc_price, -num_longitude, -num_latitude )
-
-nrow(rm_not_numloc)
-
-
-
-
-
-########### train some nets #################
-
-pricenet4 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
-                      data = rm_not_numloc, hidden = c(4,4), lifesign = "full", linear.output = FALSE, threshold = 0.1)
-
-pricenetnh2 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
-                         data = rm_not_numloc, hidden = 2, lifesign = "full", linear.output = FALSE, threshold = 0.1)
-
-pricenetnh4 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
-                       data = rm_not_numloc, hidden = 4, lifesign = "full", linear.output = FALSE, threshold = 0.1)
-
-pricenet6 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
-                      data = rm_not_numloc, hidden = c(6,4), lifesign = "full", linear.output = FALSE, threshold = 0.1)
-
-pricenet12 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
-                       data = rm_not_numloc, hidden = c(12,4), lifesign = "full", linear.output = FALSE, threshold = 0.1)
-
-pricenet14 <- neuralnet(formula = price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10, 
-                        data = rm_not_numloc, hidden = c(14,4), lifesign = "full", linear.output = FALSE, threshold = 0.1)
-
-
 
 
 
 ###### get some correlations
 
-rm_loc_price = load_location_price_date_type_rooms()                                    #load up location, price and date, and possibly type and rooms
+#rm_loc_price = load_num_location_price()                                    #load up location, price and date, and possibly type and rooms
+rm_loc_price = load_just_location_price()
 
-reduced_loc_price_data = reduce_data(rm_loc_price, frac = 1)                                          #throw away most of the data (speed)
+head(rm_loc_price)
 
-reduced_loc_price_data_nonum = dplyr::select(reduced_loc_price_data, -num_longitude, -num_latitude)    #get rid of numeric lat long
+reduced_loc_price_data = reduce_data(rm_loc_price, frac = 0.2)                                          #throw away most of the data (speed)
 
-my_formula = "price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10 + num_bedrooms +  date_created_bucket  + subtype_detached + subtype_semidetached + subtype_terraced + subtype_endofterrace + subtype_cottage "   
+head(reduced_loc_price_data)
+
+reduced_loc_price_data_nonum = dplyr::select(reduced_loc_price_data, -num_longitude, -num_latitude)    #get rid of numeric lat long and bedrooms
+
+head(reduced_loc_price_data_nonum)
+
+#my_formula = "price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10 + num_bedrooms +  date_created_bucket  + subtype_detached + subtype_semidetached + subtype_terraced + subtype_endofterrace + subtype_cottage "   
+#my_formula = "price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10 + date_created_bucket "   
+my_formula = "price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + lat9 + lat10 + long1 + long2 + long3 + long4 + long5 + long6 + long7 + long8 + long9 + long10 "   
+#my_formula = "price ~ num_longitude + num_latitude"
+
 
 #hidden_layers = c(8,3)
 #hidden_layers = 4
@@ -63,13 +41,47 @@ my_formula = "price ~ lat1 + lat2 + lat3 + lat4 + lat5 + lat6 + lat7 + lat8 + la
 #hidden_layers = c(18,2)
 #hidden_layers = c(10,6,4)
 
-test_train_obj = train_test_nn(df = reduced_loc_price_data_nonum, in_formula = my_formula, in_hidden = hidden_layers, in_threshold = 0.25)
+hidden_layers = c(15,2)
+hidden_layers = c(16,4)
+hidden_layers = c(14,3)
+hidden_layers = c(13,3)
+hidden_layers = c(15,4)
+hidden_layers = c(20,3)
+hidden_layers = c(12,3)
+hidden_layers = c(20,4)
+hidden_layers = c(3,2)
+hidden_layers = c(8,3)
+hidden_layers = 20
+hidden_layers = 2
 
-my_cor = test_train_obj["cor"]
-my_cor
-predicted_values = test_train_obj["predicted_values"]
-actual_values = unlist(test_train_obj["actual_values"])
-ggplot(data = data.frame(predicted_values, actual_values), aes(x =predicted_values, y = actual_values ) ) + geom_point(alpha = 0.15) 
+test_train_obj = train_test_nn(df = reduced_loc_price_data_nonum, in_formula = my_formula, in_hidden = hidden_layers, in_threshold = 0.1)
+
+test_train_obj[["training_R2"]]
+
+test_train_obj[["test_R2"]]
+
+
+
+good_net = test_train_obj[["trained_net"]]
+
+plot(good_net)
+
+par(mar = numeric(4), family = 'serif')
+plotnet(good_net, alpha = 0.6)
+
+
+predicted_test_values = test_train_obj["predicted_test_values"]
+actual_test_values = unlist(test_train_obj["actual_test_values"])
+ggplot(data = data.frame(predicted_test_values, actual_test_values), aes(x =predicted_test_values, y = actual_test_values ) ) + geom_point(alpha = 0.10) 
+
+
+
+
+
+
+
+
+
 
 
 ############### work through a grid of values ###########################

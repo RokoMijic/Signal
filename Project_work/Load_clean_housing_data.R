@@ -68,6 +68,20 @@ load_location_price_date_type_rooms = function()
 }
 
 
+load_num_location_price = function()
+{
+  
+  rm_selected = dplyr::select( load_normalized_housing_data(), num_latitude, num_longitude,  price  ) 
+  
+  rm_cleaned = rm_selected[rm_selected$num_latitude > -3 & rm_selected$num_latitude < 3 & rm_selected$num_longitude > -3 & rm_selected$num_longitude < 3 ,]
+  
+  return(  data.frame(rm_cleaned)   )
+}
+
+
+
+
+
 
   
 

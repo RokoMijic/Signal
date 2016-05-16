@@ -1,0 +1,3 @@
+run_num, mean(test_R), test_R[[1]], test_R[[2]], mean(training_R), chosen_hidden_txt, chosen_input_dropout, chosen_l2, chosen_epochs
+
+
