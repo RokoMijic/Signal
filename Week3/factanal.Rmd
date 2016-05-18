@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(corrplot)
+library(dplyr)
 set.seed(1) 
 X = rnorm(100)
 
@@ -57,12 +59,13 @@ corrplot(cor(noisies))
 
 ```
 
-now run PCA on the noisies
+now run PCA on the noisies and factors. They are what we expect:
 
 ```{r}
 
 pr_noise = prcomp(noisies)
-#corrplot(cor(pr_noise$x, noisies))
+corrplot(cor(pr_noise$x, noisies))
+corrplot(cor(pr_noise$x, factors))
 
 ```
 
