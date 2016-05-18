@@ -18,18 +18,16 @@ print_to_file = function(v)
 
 rm_loc_price = load_location_price_date_type_rooms ()
 
-reduced_loc_price_data_nonum = dplyr::select(rm_loc_price, -num_longitude, -num_latitude, -date_created_bucket)   #get rid of numeric lat long and bedrooms, reorder
-
-reduced_loc_price_data_nonum = reduced_loc_price_data_nonum[,c(c(1:20),c(22:27),21)] 
+reduced_loc_price_data_nonum = dplyr::select(rm_loc_price, num_bedrooms, price)   #get rid of numeric lat long and bedrooms, reorder
 
 head(reduced_loc_price_data_nonum)
   
-choosen_hidden = c(300, 30, 3)
+choosen_hidden = c(8, 3, 3)
 chosen_input_dropout = 0
 chosen_hidden_dropout = c(0,0,0)
 chosen_l1 = 0
 chosen_l2 = 10^(-4)
-chosen_epochs = 500
+chosen_epochs = 300
 
 
 print(choosen_hidden) 
@@ -63,8 +61,21 @@ ggplot(data = data.frame(predicted, actual_values), aes(x =predicted, y = actual
 
 
 
+#### use a polynomial model
 
 
+
+test_obj = train_test_linear(df = reduced_loc_price_data_nonum, 
+                             in_formula = "price ~ num_bedrooms + num_bedrooms^2 + num_bedrooms^3   "
+                            )
+
+
+test_R = test_obj[["test_R"]]
+test_R
+predicted = test_obj[["predicted_test_values"]]
+actual_values = test_obj[["actual_test_values"]]
+
+ggplot(data = data.frame(predicted, actual_values), aes(x =predicted, y = actual_values ) ) + geom_point(alpha = 0.03)
 
 
 

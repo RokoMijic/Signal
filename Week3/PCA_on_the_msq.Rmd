@@ -1,0 +1,131 @@
+---
+title: "PCA on a speed dating dataset"
+author: "Roko Mijic"
+date: "16 May 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load required packages, load the data, remove NA values:
+
+```{r echo=TRUE, message=FALSE}
+library(dplyr)
+library(zoo)
+library(psych)
+library(ggplot2)
+library(corrplot)
+library(DAAG)
+df = msq
+df = dplyr::select(df, active:scornful)
+df = na.aggregate(df)
+```
+
+Now get a principal component object for the data
+
+```{r message=FALSE}
+prc = prcomp(df, scale=TRUE)
+compsds = data.frame(comp = c(1:75), sdevs = prc$sdev)
+```
+
+
+write a function to output the top 5 components of the nth principal component
+
+
+```{r message=FALSE}
+top = function(n) 
+{
+  nthcomp = prc$rotation[,n]
+  sorted_nth = nthcomp[order(abs(nthcomp), decreasing = TRUE)] 
+  return(sorted_nth[1:5])
+}
+top(1)
+top(2)
+top(3)
+top(4)
+top(5)
+```
+
+plot the standard deviations of the components
+
+``` {r message=FALSE}
+ggplot(compsds, aes(x = comp, y = sdevs)) + geom_point( )
+
+```
+
+
+use the first n principal components to predict extraversion and neuroticism. We'll reload the data first. 
+
+```{r message=FALSE}
+df = msq
+df_targets = na.aggregate(dplyr::select(df,  Extraversion, Neuroticism))
+df_preds = na.aggregate(dplyr::select(df, active:scornful))
+princo = prcomp(df_preds, scale=TRUE)
+numfeats = ncol(df_preds)
+n=10
+df_projected_extra = dplyr::select(data.frame((princo$x)[,1:n], df_targets), -Neuroticism)
+df_projected_neuro = dplyr::select(data.frame((princo$x)[,1:n], df_targets), -Extraversion)
+
+head(df_projected_extra)
+```
+
+Plot extraversion and neuroticism as a function of the first two principal components
+
+```{r message=FALSE}
+ggplot() + geom_point(data=df_projected_extra, aes(x=PC1, y=PC2, colour = Extraversion)) + scale_colour_gradientn(colours=rainbow(4))
+```
+
+get the goodness of a fit vs the number of components used
+
+```{r message=FALSE, warning=FALSE}
+sumss = 0
+fit_n_comps = function(n)
+{
+  
+  df_projected_extra = dplyr::select(data.frame((princo$x)[,1:n], df_targets), -Neuroticism)
+  df_projected_neuro = dplyr::select(data.frame((princo$x)[,1:n], df_targets), -Extraversion)
+  head(df_projected_extra)
+  
+  sumss = 0
+  cvlm_extra = CVlm(data=df_projected_extra, Extraversion ~ ., plotit=FALSE,  printit = FALSE)
+  R2_extra = cor(cvlm_extra$Extraversion, cvlm_extra$cvpred  )
+
+  
+  sumss = 0
+  cvlm_neuro = CVlm(data=df_projected_neuro, Neuroticism ~ ., plotit=FALSE,  printit = FALSE)
+  R2_neuro = cor(cvlm_neuro$Neuroticism, cvlm_neuro$cvpred  )
+  
+  
+  return(list("R2_extra" = R2_extra,"R2_neuro" =  R2_neuro))
+
+}
+
+extra_R2s = c(1:numfeats)
+neuro_R2s = c(1:numfeats)
+
+for(n in c(1:numfeats))
+{
+  
+  fits_obj = fit_n_comps(n)
+  extra_R2s[[n]] = fits_obj[["R2_extra"]]
+  neuro_R2s[[n]] = fits_obj[["R2_neuro"]]  
+}
+
+
+R2s = data.frame( "number_of_components" = c(1:numfeats), extra_R2s, neuro_R2s )
+
+head(R2s)
+
+ggplot() + geom_point(data =R2s, aes(x=number_of_components, y=extra_R2s), color = "Red") + 
+           geom_point(data =R2s, aes(x=number_of_components, y=neuro_R2s), color = "Purple")
+
+
+```
+
+
+
+
+
+

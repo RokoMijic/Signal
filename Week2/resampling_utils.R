@@ -65,8 +65,10 @@ train_test_h2o = function(df, hidden, input_dropout_ratio, hidden_dropout_ratios
   h2o_test_input_data = as.h2o(dplyr::select(test_data, -price), destination_frame = "h2o_test_input_data")
   h2o_training_input_data = as.h2o(dplyr::select(tr_data, -price), destination_frame = "h2o_training_input_data")
   
-  h2o_model <-   h2o.deeplearning(x = 1:26,  # column numbers for predictors
-                                  y = 27,   # column number for label
+  cn = ncol(h2o_tr_data)
+  
+  h2o_model <-   h2o.deeplearning(x = 1:(cn-1),  # column numbers for predictors
+                                  y = cn,   # column number for label
                                   l1 = l1,
                                   l2 = l2,
                                   training_frame = h2o_tr_data, # data in H2O format
