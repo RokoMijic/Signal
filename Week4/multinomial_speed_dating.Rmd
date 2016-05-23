@@ -43,33 +43,73 @@ filter
 
 df = dplyr::filter(df, career_c %in% common_careers)
 
-preds = scale(data.matrix(df[,1:ncol(df)-1]))
+predictors = scale(data.matrix(df[,1:ncol(df)-1]))
 
 target = data.matrix(df[,ncol(df)])
 
-multinom_model = glmnet(preds, target, family="multinomial", lambda = 0)
+```
+
+create a multinomial model which predicts occupation, then visualise the coefficients of that model
+
+```{r}
+
+multinom_model = glmnet(predictors, target, family="multinomial", lambda = 0)
 
 coefmat = as.matrix(do.call(cbind, coef(multinom_model) ))[-1,]
 
 colnames(coefmat) = names(coef(multinom_model))
-colnames(coefmat) = c("Decepticon", "Academic", "Arty-farty", "Leech")
+colnames(coefmat) = c("Lawyer", "Academic", "Arty-farty", "business/finance")
 
 corrplot(coefmat, is.corr = FALSE)
 
-predicted_log_odds = (predict(multinom_model, preds, s = 0  ))[,,1]
+```
 
-predicted_log_odds
 
-str(predicted_log_odds)
+Now make predictions using the model, and find the principal components of the predicted categories.
+
+```{r}
+
+predicted_log_odds = (predict(multinom_model, predictors, s = 0  ))[,,1]
 
 prc_obj = prcomp(predicted_log_odds)
 
 change_of_basis = prc_obj$rotation
-row.names(change_of_basis) = c("Decepticon", "Academic", "Arty-farty", "Leech")
 
-colnames(change_of_basis) = c("Poor", "Bad at math", "???", "meaningless")
+prc_obj$sdev
+
+row.names(change_of_basis) = c("Lawyer", "Academic", "Arty-farty", "business/finance")
+
+```
+
+It turns out that the biggest principal component seems to correspond to people who have highly paid jobs versus those who don't, and the second component corresponds to mathiness:
+
+```{r}
+
+colnames(change_of_basis) = c("Poorly paid", "Less math oriented", "???", "noise")
 
 corrplot(change_of_basis)
 
 ```
+
+
+We can write a function that converts a row of this matrix of predictions (in this case corresponding to a particular person who went speed dating), and turns it from log odds into probabilities
+
+
+```{r}
+preds = matrix(data = c(1,2,3,4), nrow = 2)
+preds
+rownum = 1
+
+probabilities = function(preds, rownum)
+{
+  proportional_p_row = exp(preds[rownum,])
+  normalizer = sum(proportional_p_row) 
+  return(proportional_p_row/normalizer)
+}
+
+
+
+
+```
+
 
