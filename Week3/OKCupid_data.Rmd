@@ -1,0 +1,146 @@
+---
+title: "OKCupid_data"
+author: "Roko Mijic"
+date: "18 May 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source('./Week2/resampling_utils.R')
+library(zoo)
+library(dplyr)
+library(readr)
+library(corrplot)
+library(ggplot2)
+
+```
+
+read the OKCupid data. The data has 68371 rows and 2624 columns, about 179,000,000 values. 76% of the values are "NA". 
+We can reduce the data by taking a random sample of 3% of the rows. 
+
+```{r}
+
+df = readRDS('./Week3/parsed_data.rds')
+qdata = read_delim('./Week3/question_data.csv', ';')
+rownames(qdata) = paste("q", rownames(qdata), sep = "" )
+rownames(qdata) 
+
+df = reduce_data(df, frac = 0.2)
+dim(df)
+
+Total_vals = dim(df)[1]*dim(df)[2]
+Total_vals
+
+frac_na = sum(is.na(df))/Total_vals
+frac_na
+```
+
+Now we will process the question data to find question numbers with two answers, three answers and four answers
+
+```{r}
+colnames(qdata)[[1]] = "q_num"
+head(qdata)
+
+q_ans_2 = dplyr::filter(qdata, is.na(option_3), is.na(option_4))$q_num
+q_ans_3 = dplyr::filter(qdata, !is.na(option_3), is.na(option_4))$q_num
+q_ans_4 = dplyr::filter(qdata, !is.na(option_3), !is.na(option_4))$q_num
+```
+
+
+
+We write a function which automatically turns a dataframe of binary factor features into numerical ones, and another function to remove 
+
+```{r}
+
+numericalize = function(x){  dm = data.matrix(x) ;  class(dm) = "numeric" ;  return(data.frame(dm-1)) }
+deconstantize = function(x) {x[,apply(x, 2, var, na.rm=TRUE) != 0]}
+descriptiveize = function(x) {return(qdata[rownames(qdata) %in% x,2]) }
+
+```
+
+Now we get dataframes that are the data with just certain types of question included, for example two answer questions, three answer questions, etc: 
+
+```{r}
+
+df_qs = dplyr::select( df, starts_with("q"))
+df_ds = dplyr::select( df, starts_with("d"))
+df_ps = dplyr::select( df, starts_with("p"))
+df_2ansq = df_qs[, names(df_qs) %in% q_ans_2]
+df_3ansq = df_qs[, names(df_qs) %in% q_ans_3]
+df_4ansq = df_qs[, names(df_qs) %in% q_ans_4]
+df_misc = dplyr::select( df, -starts_with("q"), -starts_with("p"), -starts_with("d") )
+users = dplyr::select( df, d_username ) 
+```
+
+Turn the two-answer questions into 0-1 numericals:
+
+```{r}
+df_2ansq = numericalize(df_2ansq)
+```
+
+We can remove costant columns:
+
+```{r}
+df_2ansq = deconstantize(df_2ansq)
+
+df_2ansq[1:15, 1:15]
+```
+
+
+We can impute missing values simplistically using na.aggregate from zoo
+
+```{r}
+#df_2ansq = na.aggregate(df_2ansq)
+df_2ansq[1:15,1:15]
+```
+
+compute the correlation matrix using "pairwise.complete.obs", then find eigenvalues and eigenvectors
+
+```{r}
+
+head(df_2ansq)
+
+corM = cor(df_2ansq, use = "pairwise.complete.obs"  )
+corM[is.na(corM)] = 0
+eigenobj = eigen(corM, symmetric = TRUE)
+rownames(eigenobj$vectors) = rownames(corM)
+
+```
+
+Examine the large eigenvalues, make a scree plot. Arbitrarily choose eigenvalue magnitude > 12 (this needs tinkering with using the scree plot)
+
+```{r}
+
+large_evals_mask = abs(eigenobj$values) > 12
+large_evals = abs((eigenobj$values)[large_evals_mask])
+large_evecs = (eigenobj$vectors)[,large_evals_mask]
+eval_df = data.frame(eigenvector_number = c(1:length(large_evals)), eigenvalue = large_evals)
+
+ggplot() + geom_point(data = eval_df  , aes(x = eigenvector_number, y=eigenvalue ) )
+
+
+corM[1:15,1:15]
+
+names(prcomp_obj$sdev) = c(1:length(prcomp_obj$sdev))
+compdata = data.frame(compnum = c(1:length(prcomp_obj$sdev)), sdev = prcomp_obj$sdev)
+ggplot() + geom_point(data = compdata[1:20,] , aes(x = compnum, y=sdev) )
+
+
+print(descriptiveize(names(sort(large_evecs[,1])[1:50])))
+print(descriptiveize(names(sort(large_evecs[,2])[1:50])))
+print(descriptiveize(names(sort(large_evecs[,3])[1:50])))
+
+
+```
+
+
+
+
+
+
+
+
+
+
