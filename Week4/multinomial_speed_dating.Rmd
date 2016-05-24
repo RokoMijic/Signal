@@ -22,18 +22,13 @@ Read the data
 ```{r}
 setwd('C:/Users/rmiji/OneDrive/R_working_dir/Signal')
 df = read.csv('./Week4/speeddating-aggregated.csv')
-head(df)
-
 ```
 
 Find most common careers and select predictors, reorder dataframe:
 
 ```{r}
 common_careers = as.numeric(names(sort(table(df$career_c),decreasing = TRUE)[1:4]))
-common_careers
-
 df = (dplyr::select(df, -gender, -race, -race_o, -dec_o))[,c(1:5,7:23,6)]
-head(df)
 ```
 
 filter 
@@ -107,8 +102,7 @@ probabilities = function(preds, rownum)
   return(proportional_p_row/normalizer)
 }
 
-
-
+probabilities(predicted_log_odds,1)
 
 ```
 
