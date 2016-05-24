@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(psych)
 library(zoo)
 library(dplyr)
 library(readr)
@@ -21,10 +22,13 @@ qdata = read_delim('./Week3/question_data.csv', ';')
 ```
 
 Here we will process the OKCupid data. First read the OKCupid data. The data has 68371 rows and 2624 columns, about 179,000,000 values. 76% of the values are "NA". 
-We can reduce the data by taking a random sample of 4% of the rows. 
+We can reduce the data by taking a random sample of 10% of the rows where gender = male. This can be repeated for females. 
 
 ```{r}
-df = reduce_data(df, frac = 0.04)
+
+df = dplyr::filter(df, d_gender == "Man" )
+
+df = reduce_data(df, frac = 0.15)
 
 Total_vals = dim(df)[1]*dim(df)[2]
 Total_vals
@@ -93,6 +97,11 @@ compute the correlation matrix using "pairwise.complete.obs", then find eigenval
 ```{r}
 corM = cor(df_2ansq, use = "pairwise.complete.obs"  )
 corM[is.na(corM)] = 0
+```
+
+(*)
+
+```{r}
 eigenobj = eigen(corM, symmetric = TRUE)
 rownames(eigenobj$vectors) = rownames(corM)
 
@@ -102,35 +111,52 @@ Examine the large eigenvalues, make a scree plot. Arbitrarily choose eigenvalue 
 
 ```{r}
 
-large_evals_mask = abs(eigenobj$values) > 12
-large_evals = abs((eigenobj$values)[large_evals_mask])
+large_evals_mask = abs(eigenobj$values) > 11.85
+
+large_evals_abs = sort(abs((eigenobj$values)[large_evals_mask]), decreasing = TRUE)
+
 large_evecs = (eigenobj$vectors)[,large_evals_mask]
-eval_df = data.frame(eigenvector_number = c(1:length(large_evals)), eigenvalue = large_evals)
+eval_df = data.frame(eigenvector_number = c(1:length(large_evals_abs)), eigenvalue = large_evals_abs)
 
 ggplot() + geom_point(data = eval_df  , aes(x = eigenvector_number, y=eigenvalue ) )
 
 
 corM[1:5,1:5]
 
-print(names(sort(large_evecs[,1])[1:10]))
-print(descriptiveize(names(sort(large_evecs[,1])[1:10])))
-
-print(names(sort(large_evecs[,2])[1:10]))
+print_evec = function(n){}
+  
+print(descriptiveize(names(sort(large_evecs[,1]))[1:10]))
 print(descriptiveize(names(sort(large_evecs[,2])[1:10])))
-
-print(names(sort(large_evecs[,3])[1:10]))
-print(    descriptiveize(names(sort(large_evecs[,3])[1:10]))    )
-
-
-descriptiveize(names(sort(large_evecs[,3])[1:10]))
-
-names(sort(large_evecs[,3])[1:10])
-
-descriptiveize(c("q35990", "q35555")  )
-
-#aa
+print(descriptiveize(names(sort(large_evecs[,3])[1:10])))
+print(descriptiveize(names(sort(large_evecs[,4])[1:10])))
+print(descriptiveize(names(sort(large_evecs[,5])[1:10])))
+print(descriptiveize(names(sort(large_evecs[,6])[1:10])))
+print(descriptiveize(names(sort(large_evecs[,7])[1:10])))
 
 ```
+
+
+
+We can also run factor analysis from the line (*) :
+
+```{r}
+fact_obj = fa(corM, nfactors = 17, rotate="oblimin")
+
+fact_obj$values
+
+
+
+head(fact_obj$loadings)
+
+(fact_obj$loadings)[1:10,1:10]
+
+fact_obj$fit
+
+
+
+```
+
+
 
 
 
