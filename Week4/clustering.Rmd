@@ -1,0 +1,294 @@
+```{r setup, include=FALSE, message=FALSE}
+library(psych)
+library(zoo)
+library(dplyr)
+library(readr)
+library(corrplot)
+library(ggplot2)
+library(knitr)
+library(plyr)
+library(markdown)
+library(caret)
+library(glmnet)
+library(Matrix)
+library(foreach)
+library(kknn)
+library(cluster)
+library(rpart)
+library(pvclust)
+library(fpc)
+library(datasets)
+library(mixtools)
+library(mclust)
+
+
+setwd('C:/Users/rmiji/OneDrive/R_working_dir/Signal')
+df = read_delim('./Week4/protein_consumption.txt', delim = "\t"  )
+
+```
+
+# Clustering Protein consumption data
+
+We will analyse the *Protein* dataset. The dataset contains information about protein consumption (divided into various subgroups) for 25 European countries in 1973. Our goal will be to cluster countries together based on their protein consumption. 
+
+### Prepare the data
+
+Begin with the data:
+
+```{r, message=FALSE}
+head(df)
+```
+
+Scale the data:
+
+```{r, message=FALSE}
+df_scaled = data.frame( scale(dplyr::select(df, -Country))   )
+rownames(df_scaled) = unlist(dplyr::select(df, Country))
+df_scaled[1:3, 1:3]
+```
+
+### Use distance-based clustering
+
+create a distance matrix from the data:
+
+```{r, message=FALSE}
+dist_obj = dist(df_scaled, method="euclidean")
+
+```
+
+Create a convenience function to print clusters: 
+
+```{r, message=FALSE}
+print_clusters = function(labels, k) 
+{
+  for(i in 1:k) 
+  {
+    print(paste("cluster", i))
+    print(df[labels == i, c("Country", "RedMeat", "Fish", "Fr&Veg")])
+  }
+}
+```
+
+Use *hclust()* to cluster the data: 
+
+```{r, message=FALSE}
+cluster_obj = cutree(  hclust(dist_obj, method = "ward.D2" )  , k=4  )
+
+plot(hclust(dist_obj, method = "ward.D2" ))
+```
+
+Print the clusters:
+
+```{r, message=FALSE}
+print_clusters(cluster_obj, 3)
+```
+
+plot the clusters:
+
+```{r, message=FALSE}
+clusplot(df_scaled, cluster_obj, color=TRUE, shade=TRUE, labels=2, lines=0  )
+```
+
+Create a function which plots clusters, taking in settings as parameters:
+
+```{r, message=FALSE}
+hclust_plot = function(d, method, k)
+{
+  cluster_obj = cutree(  hclust(d=d, method = method )  ,  k=k  )
+  clusplot(df_scaled, cluster_obj, color=TRUE, shade=TRUE, labels=2, lines=0  )
+}
+
+hclust_plot(d = dist_obj, method = "ward.D2" , k = 5 )
+```
+
+Can we assign some level of statistical confidence to our clusters?
+
+```{r, message=FALSE, warning=FALSE, results = 'hide'}
+
+df_scaled_tr = t(data.matrix(df_scaled))
+
+pv_obj = pvclust(df_scaled_tr,   method.hclust="ward.D2", method.dist="euclidean")
+
+plot(hclust(dist_obj, method = "ward.D2" ))
+pvrect(pv_obj, alpha = 0.95)
+```
+
+The highlighted clusters are significant at a 5% level. 
+
+### K-means clustering
+
+```{r, message=FALSE}
+kmeans_plot = function(data, k)
+{
+  kmeans_obj = kmeans(data, k)
+  kmeans_obj$cluster
+  clusplot(data , kmeans_obj$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+}
+
+kmeans_plot(df_scaled, 2)
+```
+
+The clusters from K-means clustering are not particularly stable with 5 clusters, but they are with two clusters. 
+
+We can add an artificial outlier:
+
+```{r, message=FALSE}
+Narnia = c(10,-1,1,-10,1,-1,10,-1,1) 
+df_w_outlier = scale(rbind(df_scaled, Narnia))
+rownames(df_w_outlier)[26] = "Narnia"
+kmeans_plot(df_w_outlier, 2)
+```
+
+With 2 components, we get pretty close to the correct answer in the presence of an outlier. 
+
+*kmeansruns* Will give us a way of choosing the number of clusters:
+
+```{r, message=FALSE}
+kmr_obj_ch = kmeansruns(df_scaled, criterion="ch")
+clusplot(df_scaled , kmr_obj_ch$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+We can use a different criterion in *kmeansruns*
+
+```{r, message=FALSE}
+kmr_obj_asw = kmeansruns(df_scaled, criterion="asw")
+clusplot(df_scaled , kmr_obj_asw$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+the *asw* criterion stably produces three clusters. We can plot the value of the criterion we are trying to optimise against the number of clusters, K. As we can see, the *asw* criterion is maximized at 3 clusters:
+
+```{r, message=FALSE}
+plot(kmr_obj_asw$crit)
+```
+
+And for the *ch* criterion:
+
+```{r, message=FALSE}
+plot(kmr_obj_ch$crit)
+```
+
+The *ch* criterion is maximized at 2 clusters. 
+
+### Robustness analysis
+
+We can also use clusterboot() from the fpc package to repeatedly resample our data with replacement, run K-means clustering on each bootstrapped sample, and test how often clusters are dissolved in the bootstrapped clusters. This gives us a notion of how "real" the clusters are.
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+
+cb_obj = invisible(clusterboot(df_scaled, clustermethod=kmeansCBI, runs=100, iter.max=100, krange=5 ))
+clusplot(df_scaled , cb_obj$result$partition, color=TRUE, shade=TRUE, labels=2, lines=0)
+cb_obj$bootmean
+```
+
+Cluster 3 is the most robust, cluster 4 the least. 
+
+## Mixture models
+
+#### old faithful eruptions 
+
+We will examine old faithful eruption times, looking to model them as a mixture model. First consider the waiting times:
+
+```{r, message=FALSE}
+df_faithful = faithful
+hist(df_faithful$waiting)
+```
+
+And also the duration of the eruptions:
+
+```{r, message=FALSE}
+hist(df_faithful$eruptions )
+```
+
+Model the waiting times as a mixture of normals:
+
+```{r, message=FALSE}
+mix_obj = normalmixEM(df_faithful$waiting)
+summary(mix_obj)
+plot(mix_obj, density=TRUE, which=2 )
+```
+
+Try a mixture model with the "wrong" number of components:
+
+```{r, message=FALSE}
+mix_obj_3 = normalmixEM(df_faithful$waiting, k=3)
+plot(mix_obj_3, density=TRUE, which=2 )
+```
+
+We can see that the result is unstable - you get wildly different parameters every time. 
+
+### Semiparametric methods
+
+We can use a semiparametric model:
+
+```{r, message=FALSE}
+sp_obj = spEMsymloc(df_faithful$waiting, mu0 = 2, bw = 0.01)
+plot(sp_obj)
+sp_obj = spEMsymloc(df_faithful$waiting, mu0 = 2, bw = 0.1)
+plot(sp_obj)
+sp_obj = spEMsymloc(df_faithful$waiting, mu0 = 2, bw = 1)
+plot(sp_obj)
+sp_obj = spEMsymloc(df_faithful$waiting, mu0 = 2, bw = 10)
+plot(sp_obj)
+```
+
+We can test the robustness of a semiparametric model to outliers:
+
+```{r, message=FALSE}
+df_faithful_ol = rbind(df_faithful, c(19, 190), c(23, 180) )
+```
+
+the semiparamatric model can be vulnerable to outliers with a bad bandwidth parameter
+
+```{r, message=FALSE}
+
+sp_obj_ol = spEMsymloc(df_faithful_ol$waiting, mu0 = 2, bw = 2)
+plot(sp_obj_ol)
+
+```
+
+### Multivariate mixture models
+
+Looking at the old faithful data, there are clearly two clusters:
+
+```{r, message=FALSE}
+ggplot(data = df_faithful, aes(x = waiting, y = eruptions ) ) + geom_point()
+```
+
+We would like to cluster them into two clusters. First we should scale the data.
+
+```{r, message=FALSE}
+df_fs = scale(df_faithful)
+Lust_obj = Mclust(df_fs)
+plot(Lust_obj, what = "classification")
+```
+
+Try the same thing with the protein consumption data. The issue with this data is the larger number of dimensions makes it hard to understand the resulting clusters - since they are in high-dimensional space.
+
+```{r, message=FALSE}
+Lust_obj_pr = Mclust(df_scaled)
+plot(Lust_obj_pr, what = "classification")
+```
+
+clusplot allows us to visualize the clusters from *mclust*:
+
+```{r, message=FALSE}
+clusplot(df_scaled , Lust_obj_pr$classification, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+We can do the same thing with *npEM*:
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+
+plot(df_fs)
+np_obj = npEM(df_fs, mu0 = 2 )
+np_obj$posteriors
+labels = apply(np_obj$posteriors, 1, which.max) 
+mypal = colorRampPalette( c( "red", "blue" ) )( 2 )
+np_data = cbind( data.frame(df_fs) ,  labels  )
+ggplot(data = np_data, aes(x=eruptions, y=waiting)) + geom_point( color = mypal[labels] )
+```
+
+
+
+
+

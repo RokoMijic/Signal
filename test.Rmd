@@ -1,0 +1,46 @@
+```{r setup, include=FALSE, message=FALSE}
+
+
+
+library(dplyr)
+library(readr)
+
+library(fpc)
+
+
+
+setwd('C:/Users/rmiji/OneDrive/R_working_dir/Signal')
+df = read_delim('./Week4/protein_consumption.txt', delim = "\t"  )
+
+```
+
+***Clustering Protein consumption data***
+
+We will analyse the *Protein* dataset. The dataset contains information about protein consumption (divided into various subgroups) for 25 European countries in 1973. Our goal will be to cluster countries together based on their protein consumption. Begin with the data:
+
+```{r, message=FALSE}
+
+```
+
+Scale the data:
+
+```{r, message=FALSE}
+df_scaled = data.frame( scale(dplyr::select(df, -Country))   )
+rownames(df_scaled) = unlist(dplyr::select(df, Country))
+
+```
+
+
+**Robustness analysis**
+
+We can also use clusterboot() from the fpc package to repeatedly resample our data with replacement, run K-means clustering on each bootstrapped sample, and test how often clusters are dissolved in the bootstrapped clusters. This gives us a notion of how "real" the clusters are.
+
+```{r, echo=FALSE,  warning=FALSE, results='hide',  message=FALSE}
+
+cb_obj = clusterboot(df_scaled, clustermethod=kmeansCBI, runs=100, iter.max=100, krange=5 )
+
+```
+
+
+
+

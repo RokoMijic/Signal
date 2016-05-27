@@ -24,11 +24,11 @@ qdata = read_delim('./Week3/question_data.csv', ';')
 Here we will process the OKCupid data. First read the OKCupid data. The data has 68371 rows and 2624 columns, about 179,000,000 values. 76% of the values are "NA". 
 We can reduce the data by taking a random sample of 10% of the rows where gender = male. This can be repeated for females. 
 
-```{r}
+```{r message=FALSE}
 
 df = dplyr::filter(df, d_gender == "Man" )
 
-df = reduce_data(df, frac = 0.15)
+df = reduce_data(df, frac = 0.80)
 
 Total_vals = dim(df)[1]*dim(df)[2]
 Total_vals
@@ -38,7 +38,7 @@ frac_na
 
 Do some minor renaming of the question data:
 
-```{r}
+```{r message=FALSE}
 colnames(qdata)[[1]] = "q_num"
 rownames(qdata) = paste("q", rownames(qdata), sep = "" )
 
@@ -46,7 +46,7 @@ rownames(qdata) = paste("q", rownames(qdata), sep = "" )
 
 Now we will process the question data to find question numbers with two answers, three answers and four answers
 
-```{r}
+```{r message=FALSE}
 q_ans_2 = dplyr::filter(qdata, is.na(option_3), is.na(option_4))$q_num
 q_ans_3 = dplyr::filter(qdata, !is.na(option_3), is.na(option_4))$q_num
 q_ans_4 = dplyr::filter(qdata, !is.na(option_3), !is.na(option_4))$q_num
@@ -55,7 +55,7 @@ q_ans_4 = dplyr::filter(qdata, !is.na(option_3), !is.na(option_4))$q_num
 
 We write a function which automatically turns a dataframe of binary factor features into numerical ones, another function to remove constant columns, and a final one to turn question numbers into descriptive question texts: 
 
-```{r}
+```{r message=FALSE}
 # function to make a non-numeric dataframe into a numeric one
 numericalize = function(x){  dm = data.matrix(x) ;  class(dm) = "numeric" ;  return(data.frame(dm-1)) }
 
@@ -69,7 +69,7 @@ descriptiveize = function(x) {return(qdata[match(x, qdata$q_num),2]) }
 
 Now we get dataframes that are the data with just certain types of question included, for example two answer questions, three answer questions, etc: 
 
-```{r}
+```{r message=FALSE}
 df_qs = dplyr::select( df, starts_with("q"))
 df_ds = dplyr::select( df, starts_with("d"))
 df_ps = dplyr::select( df, starts_with("p"))
@@ -81,35 +81,35 @@ df_misc = dplyr::select( df, -starts_with("q"), -starts_with("p"), -starts_with(
 
 Turn the two-answer questions into 0-1 numericals:
 
-```{r}
+```{r message=FALSE}
 df_2ansq = numericalize(df_2ansq)
 ```
 
 We can remove costant columns:
 
-```{r}
+```{r message=FALSE}
 df_2ansq = deconstantize(df_2ansq)
 df_2ansq[1:5, 1:5]
 ```
 
 compute the correlation matrix using "pairwise.complete.obs", then find eigenvalues and eigenvectors
 
-```{r}
+```{r message=FALSE}
 corM = cor(df_2ansq, use = "pairwise.complete.obs"  )
 corM[is.na(corM)] = 0
 ```
 
 (*)
 
-```{r}
+```{r message=FALSE}
 eigenobj = eigen(corM, symmetric = TRUE)
 rownames(eigenobj$vectors) = rownames(corM)
 
 ```
 
-Examine the large eigenvalues, make a scree plot. Arbitrarily choose eigenvalue magnitude > 12 (this needs tinkering with using the scree plot)
+Examine the large eigenvalues, make a scree plot. Arbitrarily choose eigenvalue magnitude > 11.85 (this needs tinkering with using the scree plot)
 
-```{r}
+```{r message=FALSE}
 
 large_evals_mask = abs(eigenobj$values) > 11.85
 
@@ -139,7 +139,7 @@ print(descriptiveize(names(sort(large_evecs[,7])[1:10])))
 
 We can also run factor analysis from the line (*) :
 
-```{r}
+```{r message=FALSE}
 fact_obj = fa(corM, nfactors = 17, rotate="oblimin")
 
 fact_obj$values

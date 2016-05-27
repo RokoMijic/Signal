@@ -2,30 +2,18 @@
 source('./Project_work/Load_clean_housing_data.R')
 source('./Week2/resampling_utils.R')
 
-library(h2o)
 library(dplyr)
-
-localH2O = h2o.init()
-
-
-
 
 ###### load up location, price 
 
-rm_loc_price = load_just_location_price()
-reduced_loc_price_data_nonum = dplyr::select(rm_loc_price, -num_longitude, -num_latitude)    #get rid of numeric lat long and bedrooms
+loc_price = load_just_location_price()
+loc_price_nonum = dplyr::select(loc_price, -num_longitude, -num_latitude)    #get rid of numeric lat long and bedrooms
+red_loc_price = dplyr::sample_frac(loc_price_nonum, size = 1,  replace = FALSE)
+
+dim(loc_price_nonum)
 
 
-h2o_test_obj = train_test_h2o(df = reduced_loc_price_data_nonum, 
-                              #hidden = c(40,20, 10,2), 
-                              #hidden = c(20, 10,10, 10,10,2), 
-                              hidden = c(125, 30, 25, 3),
-                              input_dropout_ratio = 0.3,
-                              hidden_dropout_ratios = c(0,0,0,0),
-                              l1 = 0.0000,
-                              l2 = 0.000080,
-                              train_fraction = 0.75, 
-                              epochs = 1000)
+test_obj = 
   
 
 h2o_test_obj[["training_R"]]

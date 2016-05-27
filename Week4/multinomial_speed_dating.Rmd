@@ -14,7 +14,6 @@ library(readr)
 library(corrplot)
 library(ggplot2)
 library(glmnet)
-
 ```
 
 Read the data

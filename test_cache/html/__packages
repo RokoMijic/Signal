@@ -1,0 +1,14 @@
+base
+methods
+ggplot2
+lattice
+plyr
+Rmisc
+datasets
+utils
+grDevices
+graphics
+stats
+dplyr
+readr
+fpc

@@ -1,0 +1,174 @@
+---
+title: "Wine Quality Analysis"
+author: "Roko Mijic"
+date: "24 May 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(psych)
+library(zoo)
+library(dplyr)
+library(readr)
+library(corrplot)
+library(ggplot2)
+library(knitr)
+library(plyr)
+library(markdown)
+library(caret)
+library(glmnet)
+library(Matrix)
+library(foreach)
+library(kknn)
+library(rpart)
+#install.packages("rpart")
+
+setwd('C:/Users/rmiji/OneDrive/R_working_dir/Signal')
+df_white = read.csv('./Week4/winequality-white.csv', sep = ";")
+
+```
+
+**Visualizing the data**
+
+Start with a dataset about white wine quality:
+
+```{r}
+df_white[1:4,]
+```
+
+Plot graphs of the individual variables versus wine quality:
+
+```{r, fig.width = 3, fig.height = 3}
+numvars = ncol(df_white)-1 
+mypal <- colorRampPalette( c( "brown", "purple" ) )( numvars )
+
+for(i in c(1:numvars)   )
+{
+  print(ggplot( data = df_white, aes(x = df_white[[i]], y=df_white$quality) ) + geom_point(color = mypal[[ (4*i)%%(numvars-1) + 1  ]] ) + labs(x = colnames(df_white)[[i]], y = "quality" ))
+}
+```
+
+**Linear model training**
+
+Use caret to train a linear model to predict wine quality. First create training and test sets:
+
+```{r}
+inTraining <- createDataPartition(df_white$quality, p = .75, list = FALSE)
+training <- df_white[ inTraining,]
+testing  <- df_white[-inTraining,]
+```
+
+Then use caret to train an optimal linear model:
+
+```{r}
+fitControl <- trainControl(method = "cv", number = 3)
+glmFit1 = train(quality ~ ., data = training, method = "glmnet",  trControl = fitControl)
+predicted_linear_quality = predict(glmFit1, dplyr::select(testing,-quality) )
+df_linear_fit = data.frame(testing$quality, predicted_linear_quality )
+```
+
+Plot the linear fit - predicted vs actual:
+
+```{r}
+ggplot( data = df_linear_fit, aes(x = testing.quality, y=predicted_linear_quality) ) + geom_point(color = "blue" ) + labs(x = "actual quality", y = "predicted quality" ) + geom_smooth(method = "lm")
+```
+
+Finally find the RMSE for the linear model:
+```{r}
+RMSE(testing$quality, df_linear_fit$predicted_linear_quality )
+```
+
+Examine the coefficients of the best model:
+
+```{r}
+coef(glmFit1$finalModel, s = glmFit1$bestTune$lambda )
+```
+
+***Nonlinear modelling***
+**K-neasest neighbours**
+
+Next, we will use K-Nearest Neighbors to try to predict the wine quality.
+
+```{r}
+KNN_fit = train(quality ~ ., data = training, method = "kknn", tuneLength=10)
+predicted_KNN_quality = predict(KNN_fit, dplyr::select(testing,-quality) )
+df_KNN_fit = data.frame(testing$quality, predicted_KNN_quality )
+head(df_KNN_fit)
+```
+
+plot an actual vs predited fit for K-nearest neighbours: 
+
+```{r}
+ggplot( data = df_KNN_fit, aes(x = testing.quality, y=predicted_KNN_quality) ) + geom_point(color = "Darkgreen" ) + labs(x = "actual quality", y = "predicted quality" ) + geom_smooth(method = "lm")
+```
+
+Find the RMSE for KNN:
+
+```{r}
+RMSE(testing$quality, df_KNN_fit$predicted_KNN_quality)
+```
+
+Here the KNN algorithm manages to outperform the linear model, RMSE is 0.67136, versus 0.72143 (linear). 
+
+**Regression trees**
+
+Construct a regression tree model to predict white wine quality:
+
+```{r}
+regtree_fit = rpart(quality ~ ., data = training)
+```
+
+We can print the tree out:
+
+```{r}
+print(regtree_fit)
+```
+
+And we can get predictions for the dataset 
+
+```{r}
+predicted_regtree_quality = predict(regtree_fit, dplyr::select(testing,-quality) )
+df_regtree_fit = data.frame(testing$quality, predicted_regtree_quality )
+head(df_regtree_fit)
+```
+
+Find the RMSE for this regression tree:
+```{r}
+RMSE(df_regtree_fit$testing.quality, df_regtree_fit$predicted_regtree_quality )
+```
+
+Let's try to train the *cp* hyperparameter using caret's *train()* function:
+
+```{r}
+tree_caret_fit = train(quality ~ ., data = training, method = "rpart", tuneLength=10)
+tree_caret_predictions = predict(tree_caret_fit, dplyr::select(testing,-quality) )
+df_tree_caret_fit = data.frame(testing$quality, tree_caret_predictions )
+head(df_tree_caret_fit)
+```
+
+Find the RMSE for the tree with the best *cp* value:
+
+```{r}
+RMSE(df_tree_caret_fit$testing.quality, df_tree_caret_fit$tree_caret_predictions )
+```
+
+Here we get a value slightly smaller (better) than for a tree without tuning the *cp* value, however worse than for K-nearest neighbours. 
+
+```{r}
+```
+
+**Random Forests**
+
+We will attempt to outperform K-nearest neighbours using random forests. 
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,158 @@
+```{r setup, include=FALSE}
+
+library(psych)
+library(zoo)
+library(dplyr)
+library(readr)
+library(corrplot)
+library(ggplot2)
+library(knitr)
+library(plyr)
+library(markdown)
+library(caret)
+library(glmnet)
+library(Matrix)
+library(foreach)
+library(kknn)
+library(rpart)
+#install.packages("rpart")
+
+setwd('C:/Users/rmiji/OneDrive/R_working_dir/Signal')
+df = read.csv('./Week4/2016_lw_survey_public_release_3.csv', sep = "," , na.strings = c("NA", "N/A", "")  )
+
+```
+
+*** Analysis of survey results from users of a website ***
+
+***Data Cleaning***
+
+Start with the raw survey data:
+
+```{r}
+df[1:2, 1:5]
+nrow(df)
+ncol(df)
+```
+
+Restrict to people who gave consent for their (anonymous) responses to be used for 
+
+```{r}
+df_filtered = dplyr::filter(df, GeneralPrivacy == "Yes", ResearchConsent == "Yes", !is.na(Age), Depression  != "")
+nrow(df_filtered)
+```
+
+Find columns where users had to enter a text answer so we can exclude them
+
+```{r}
+dropWith = function(dropDF, s)
+{
+ dropNames = names(dropDF)
+ dropCol = c()
+ for(i in s)
+   {
+     dropCol = c(dropCol,grep(i,dropNames))
+   }
+ return(sort(unique(dropCol)) )
+}
+
+droppable_indices = dropWith(df_filtered, c("other","comment","Write","Calibration","CharityDonations","Peak", "PhilosophyIssuesNow", "CommunityIssuesNow", "SuccessorPhilosophy"))
+```
+
+Find some other columns that need to be dropped
+
+```{r}
+uniqueness_value = sapply(df_filtered,function(d)(length(unique(d))/(sum(!is.na(d)))))
+too_unique = c(1:ncol(df_filtered))[uniqueness_value >.8]
+constant_cols = c(1:ncol(df_filtered))[sapply(df_filtered, function(x) {length(unique(x)) <= 1 })]
+droppable_indices = sort(unique( c(droppable_indices, too_unique, constant_cols )  ))
+```
+
+Exclude them:
+
+```{r}
+dim(df_filtered)
+df_drop_done = df_filtered[-droppable_indices]
+dim(df_drop_done)
+```
+
+Now we will add *NA* as a factor level to columns that are factors 
+
+```{r}
+df_na_done = data.frame(  lapply(df_drop_done, function(x) { if(is.factor(x)) { return(addNA(x))} else {return(x)} })  )
+```
+
+Now select just the numeric columns and just probability questions:  
+
+```{r}
+num_mask = sapply( df_na_done, function(x) { is.numeric(x)  } )
+pr_mask = sapply(colnames(df_na_done), function(x) { grepl("ProbabilityQuestions", x) } )
+```
+
+
+```{r}
+df_tran = df_na_done 
+```
+
+Remove nonsense probabilities:
+
+```{r}
+head(df_tran[probability_mask])
+
+invalid_probs =  sapply(    1:nrow(df_tran), function(x){ any(  df_tran[x,pr_mask] < 0 | df_tran[x,pr_mask] > 100) }  )
+invalid_probs[is.na(invalid_probs)] = FALSE
+df_tran = df_tran[!invalid_probs,]
+```
+
+
+
+```{r}
+summary(df_tran[num_mask])
+
+sapply(1:nrow(df), function(x) { max(df[x,column_names_list]) >= 1 })
+
+any(TRUE,FALSE, FALSE)
+```
+
+And replace them with some transformed variables. For  the log_10 of themselves plus one:
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
