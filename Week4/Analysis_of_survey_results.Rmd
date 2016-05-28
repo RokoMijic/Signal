@@ -181,7 +181,6 @@ df_textpr[  df_textpr[ , ] == "No"   ] = 0
 
 head(df_textpr)
 
-sum(df_textpr[ , ] == "Yes, I was formally diagnosed by a doctor or other mental health professional" & !is.na(df_textpr[ , ])  )
 
 df_textpr[  df_textpr[ , ] == "Not formally, but I personally believe I have (or had) it"  ] = 1
 df_textpr[  df_textpr[ , ] == "Yes, I was formally diagnosed by a doctor or other mental health professional"   ] = 2
@@ -248,13 +247,36 @@ df_textpr[  df_textpr[ , ] == "Support"                          ] = 3
 df_textpr[  df_textpr[ , ] == "Strongly support"                 ] = 4
 
 
+df_textpr[  df_textpr[ , ] == "Strongly doubt"                   ] = 0
+df_textpr[  df_textpr[ , ] == "Doubt"                            ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Believe"                          ] = 3
+df_textpr[  df_textpr[ , ] == "Strongly believe"                 ] = 4
 
 
-sapply( dplyr::select(  df_textpr , contains("SQ001") ) , unique)[,9]
+df_textpr[  df_textpr[ , ] == "Maybe a little"                                ] = 0.5
+df_textpr[  df_textpr[ , ] == "Depends on the strength of the improvements"   ] = 0.5
+
+df_textpr[  df_textpr[ , ] == "Negative"                         ] = 0
+df_textpr[  df_textpr[ , ] == "Mostly Negative"                  ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Mostly Positive"                  ] = 3
+df_textpr[  df_textpr[ , ] == "Positive"                         ] = 4
+
+df_textpr[  df_textpr[ , ] == "Partially"                        ] = 0.5
+df_textpr[  df_textpr[ , ] == "Partially"                        ] = 0.5
+
+df_textpr[ sapply(df_textpr$AIBoxingPractice, function(z){  grepl("Yes with", z)  }    )   ,   "AIBoxingPractice"      ] = 0.5
 
 
+head(df_textpr)
 
 
+sapply( dplyr::select(  df_textpr , contains("Genetic") ) , unique)
+
+
+"Maybe a little" 
+"Depends on the strength of the improvements"
                                             
 
       "Never"                                
