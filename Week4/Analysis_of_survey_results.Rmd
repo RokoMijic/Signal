@@ -96,63 +96,196 @@ df_tran = df_na_done
 Remove nonsense probabilities:
 
 ```{r}
-head(df_tran[probability_mask])
-
 invalid_probs =  sapply(    1:nrow(df_tran), function(x){ any(  df_tran[x,pr_mask] < 0 | df_tran[x,pr_mask] > 100) }  )
 invalid_probs[is.na(invalid_probs)] = FALSE
 df_tran = df_tran[!invalid_probs,]
 ```
 
 
+Try to remove nonsense values of other numerical columns. For SingularityYear and UnemploymentYear, values greater than 100000 years in the future are excluded. And replace them with some transformed variables. 
 
 ```{r}
-summary(df_tran[num_mask])
+df_num = df_tran[num_mask & !pr_mask]
+summary(df_num)
 
-sapply(1:nrow(df), function(x) { max(df[x,column_names_list]) >= 1 })
+# transform the predicted singularity years and unempoyment years by subtracting 2016
 
-any(TRUE,FALSE, FALSE)
+df_num["SingularityYear"] = df_num["SingularityYear"] - 2016
+df_num["UnemploymentYear"] = df_num["UnemploymentYear"] - 2016
+
+
+df_boundries = matrix( rep(0, 2*ncol( df_num ) ), nrow = 2    )
+colnames(df_boundries) = colnames(df_num)
+rownames(df_boundries) = c("lower", "upper")
+
+df_boundries[,"Age"] = c(0,120)
+df_boundries[,"IQ"] = c(50, 200)
+df_boundries[,"IQAge"] = c(0,120)
+df_boundries[,"SAT"] = c(0,2000)
+df_boundries[,"SAT2"] = c(0,3000)
+df_boundries[,"ACT"]  = c(0,50)
+df_boundries[,"MIRIMission"]  = c(1,5)
+df_boundries[,"MIRIEffectiveness"] = c(1,5)
+df_boundries[,"PoliticalInterest"] = c(1,5)
+df_boundries[,"SingularityYear"]  = c(0, 100000)
+df_boundries[,"UnemploymentYear"] = c(0, 100000)
+df_boundries[,"Income"] = c(0,100000000)
+df_boundries[,"IncomeCharityPortion"] = c(0,100000000)
+df_boundries[,"XriskCharity"]= c(0,100000000)
+
+
+lowerb = df_boundries[ rep(1,nrow(df_num )) ,  ]
+upperb = df_boundries[ rep(2,nrow(df_num )) ,  ]
+
+# apply the boundries to the data:
+
+df_num[   ((df_num > upperb) |  (df_num < lowerb)) & !is.na(df_num)   ] = NA
+
+# plot log-log graphs
+
+plot(log10(df_num[!is.na(df_num$SingularityYear), "SingularityYear"]))
+plot(log10(df_num[!is.na(df_num$SingularityYear), "UnemploymentYear"]))
+
+#log_10 the year variables:
+
+df_num["SingularityYear"] = log10( df_num["SingularityYear"] + 1 ) 
+df_num["UnemploymentYear"] = log10( df_num["UnemploymentYear"] + 1 )
+df_num["IncomeCharityPortion"] = log10( df_num["IncomeCharityPortion"] + 1 )
+df_num["XriskCharity"] = log10( df_num["XriskCharity"] + 1 )
+df_num["Income"] = log10( df_num["Income"] + 1 )
+
+
+#add the processed numeric variables back into the dataframe
+
+summary(df_num)
+df_tran[num_mask & !pr_mask] = df_num 
+
 ```
 
-And replace them with some transformed variables. For  the log_10 of themselves plus one:
+Now we convert yes/no questions to *1/0* and deal with with values that are text based scales
+
+
+```{r}
+df_textpr = df_tran[, (!num_mask & !pr_mask)]
+
+df_textpr[1:5, 1:5]
+
+# convert non-numeric answers to characters
+
+df_textpr[] = lapply(df_textpr, as.character)
+
+# set Yes to 1, No to 0
+
+df_textpr[  df_textpr[ , ] == "Yes"  ] = 1
+df_textpr[  df_textpr[ , ] == "No"   ] = 0
+
+head(df_textpr)
+
+sum(df_textpr[ , ] == "Yes, I was formally diagnosed by a doctor or other mental health professional" & !is.na(df_textpr[ , ])  )
+
+df_textpr[  df_textpr[ , ] == "Not formally, but I personally believe I have (or had) it"  ] = 1
+df_textpr[  df_textpr[ , ] == "Yes, I was formally diagnosed by a doctor or other mental health professional"   ] = 2
+
+
+df_textpr[  df_textpr[ , ] == "More"   ] = 2
+df_textpr[  df_textpr[ , ] == "Same"   ] = 1
+df_textpr[  df_textpr[ , ] == "Less"   ] = 0
+
+df_textpr[  df_textpr[ , ] == "Never Heard Of It"         ] = 0
+df_textpr[  df_textpr[ , ] == "Never"                     ] = 1
+df_textpr[  df_textpr[ , ] == "Almost Never"              ] = 2
+df_textpr[  df_textpr[ , ] == "Less"                      ] = 3
+df_textpr[  df_textpr[ , ] == "Rarely"                    ] = 4
+df_textpr[  df_textpr[ , ] == "Sometimes"                 ] = 5
+df_textpr[  df_textpr[ , ] == "Regular Reader"            ] = 6
+df_textpr[  df_textpr[ , ] == "http://kajsotala.fi/"      ] = NA
+
+
+df_textpr[  df_textpr[ , ] == "Never Heard Of It"                ] = 0
+df_textpr[  df_textpr[ , ] == "Never"                            ] = 1
+df_textpr[  df_textpr[ , ] == "Partially And Abandoned"          ] = 2
+df_textpr[  df_textpr[ , ] == "Partially And Intend To Finish"   ] = 3
+df_textpr[  df_textpr[ , ] == "Whole Thing"                      ] = 4
+
+
+df_textpr[  df_textpr[ , ] == "Pro-Life"                         ] = 0
+df_textpr[  df_textpr[ , ] == "Lean Pro-Life"                    ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Lean Pro-Choice"                  ] = 3
+df_textpr[  df_textpr[ , ] == "Pro-Choice"                       ] = 4
+
+df_textpr[  df_textpr[ , ] == "Should be more open"              ] = 0
+df_textpr[  df_textpr[ , ] == "Lean more open"                   ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Lean more restricted"             ] = 3
+df_textpr[  df_textpr[ , ] == "Should be more restricted"        ] = 4
+
+df_textpr[  df_textpr[ , ] == "Should be lower"                  ] = 0
+df_textpr[  df_textpr[ , ] == "Lean towards lower"               ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Lean towards higher"              ] = 3
+df_textpr[  df_textpr[ , ] == "Should be higher"                 ] = 4
+
+
+df_textpr[  df_textpr[ , ] == "Should be lower or eliminated"    ] = 0
+df_textpr[  df_textpr[ , ] == "Lean towards lower or eliminated" ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Lean towards higher"              ] = 3
+df_textpr[  df_textpr[ , ] == "Should be higher"                 ] = 4
+
+
+df_textpr[  df_textpr[ , ] == "Very unfavorable"                 ] = 0
+df_textpr[  df_textpr[ , ] == "Unfavorable"                      ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Favorable"                        ] = 3
+df_textpr[  df_textpr[ , ] == "Very favorable"                   ] = 4
+
+
+df_textpr[  df_textpr[ , ] == "Strongly oppose"                  ] = 0
+df_textpr[  df_textpr[ , ] == "Oppose"                           ] = 1
+df_textpr[  df_textpr[ , ] == "No strong opinion"                ] = 2
+df_textpr[  df_textpr[ , ] == "Support"                          ] = 3
+df_textpr[  df_textpr[ , ] == "Strongly support"                 ] = 4
+
+
+
+
+sapply( dplyr::select(  df_textpr , contains("SQ001") ) , unique)[,9]
+
+
+
+
+                                            
+
+      "Never"                                
+"Never Heard Of It"
+                            
+                            
+
+sapply( dplyr::select(  df_textpr , contains("SuccessorCommunity") ) , unique)      
+
+
+
+
+unique( as.character( sapply( dplyr::select(  df_textpr , contains("SQ001") ) , unique) ))
+
+unique(  unlist(      )  )
+
+
+sapply( dplyr::select(  df_textpr , contains("BlogsRead") ) , unique)
+
+sapply( dplyr::select(  df_textpr , contains("BlogsRead2") ) , unique)      
+sapply( dplyr::select(  df_textpr , contains("StoriesRead") ) , unique)      
+ 
+sapply( dplyr::select(  df_textpr , contains("Genetic") ) , unique) 
+
+
+sapply(df_textpr , function(c) { unique(c) } ) [1:5]
+
+```
+
 
 ```{r}
 
 ```
-
-
-```{r}
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

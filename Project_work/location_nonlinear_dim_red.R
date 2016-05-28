@@ -2,6 +2,8 @@
 source('./Project_work/Load_clean_housing_data.R')
 source('./Week2/resampling_utils.R')
 
+install.packages("tsne")
+library(tsne)
 library(dplyr)
 
 ###### load up location, price 
@@ -12,6 +14,7 @@ red_loc_price = dplyr::sample_frac(loc_price_nonum, size = 0.1,  replace = FALSE
 
 dim(red_loc_price)
 
+tsne(
 
 test_obj = 
   
