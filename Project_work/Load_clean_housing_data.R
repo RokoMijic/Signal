@@ -36,52 +36,49 @@ load_normalized_housing_data = function()
 
 load_just_location_price = function()
 {
-
   rm_selected = dplyr::select( load_normalized_housing_data(), starts_with("lat"), starts_with("long"), num_latitude, num_longitude, starts_with("price")  ) 
-  
-  rm_cleaned = rm_selected[rm_selected$num_latitude > -3 & rm_selected$num_latitude < 3 & rm_selected$num_longitude > -3 & rm_selected$num_longitude < 3 ,]
-  
-  return(  data.frame(rm_cleaned)   )
+  return(  data.frame(fix_LL(rm_selected) )   )
 }
 
 
 load_location_price_date = function()
 {
-  
   rm_selected = dplyr::select( load_normalized_housing_data(), starts_with("lat"), starts_with("long"), num_latitude, num_longitude,  price, date_created_bucket  ) 
-  
-  rm_cleaned = rm_selected[rm_selected$num_latitude > -3 & rm_selected$num_latitude < 3 & rm_selected$num_longitude > -3 & rm_selected$num_longitude < 3 ,]
-  
-  return(  data.frame(rm_cleaned)   )
+  return(  data.frame(fix_LL(rm_selected) )   )
 }
 
 
 
 load_location_price_date_type_rooms = function()
 {
-  
   rm_selected = dplyr::select( load_normalized_housing_data(), starts_with("lat"), starts_with("long"), num_latitude, num_longitude,  price, date_created_bucket, num_bedrooms,subtype_detached,subtype_semidetached,subtype_terraced,subtype_endofterrace,subtype_cottage  ) 
+  head(rm_selected)
   
-  rm_cleaned = rm_selected[rm_selected$num_latitude > -3 & rm_selected$num_latitude < 3 & rm_selected$num_longitude > -3 & rm_selected$num_longitude < 3 ,]
-  
-  return(  data.frame(rm_cleaned)   )
+  return(  data.frame(fix_LL(rm_selected) )   )
 }
 
 
 load_num_location_price = function()
 {
-  
   rm_selected = dplyr::select( load_normalized_housing_data(), num_latitude, num_longitude,  price  ) 
-  
-  rm_cleaned = rm_selected[rm_selected$num_latitude > -3 & rm_selected$num_latitude < 3 & rm_selected$num_longitude > -3 & rm_selected$num_longitude < 3 ,]
-  
-  return(  data.frame(rm_cleaned)   )
+  return(  data.frame(fix_LL(rm_selected) )   )
 }
 
 
+fix_LL = function(df)
+{
+  df_restr = df[df$num_latitude > 0 & df$num_latitude < 1 & df$num_longitude > -0.5 & df$num_longitude < 1.5 ,  ]
+  df_sc = rescale(df_restr )
+  return(df_sc) 
+}
 
 
-
-
+rescale = function(df)
+{
+  df$num_latitude = 1.2*df$num_latitude + 50.5
+  df$num_longitude = 1.4*df$num_longitude - 0.1
+  return(df)
+}
+  
   
 

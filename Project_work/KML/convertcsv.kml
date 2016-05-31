@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+
+	<name>convertcsv.kml</name>
+	
+	
+
+	<Placemark>
+		<Style>
+			<IconStyle>
+				<color>fe228823</color>
+				<scale>5</scale>
+				<Icon>
+					<href>http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png</href>
+				</Icon>
+			</IconStyle>
+		</Style>
+		<Point>
+			<coordinates>0.38928,51.27022000000001,0</coordinates>
+		</Point>
+	</Placemark>
+	
+	
+	
+	<Placemark>
+		<Style>
+			<IconStyle>
+				<color>#fff020a0</color>
+				<scale>5</scale>
+				<Icon>
+					<href>http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png</href>
+				</Icon>
+			</IconStyle>
+		</Style>
+		<Point>
+			<coordinates>0.48928,51.27022000000001,0</coordinates>
+		</Point>
+	</Placemark>
+	
+	
+	
+	
+</Document>
+</kml>

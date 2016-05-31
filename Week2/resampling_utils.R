@@ -61,7 +61,8 @@ train_test_h2o = function(df, hidden, input_dropout_ratio, hidden_dropout_ratios
   tr_data = df[tr_mask,]
   test_data = df[!tr_mask,]
   
-  h2o_tr_data = as.h2o(tr_data, destination_frame = "h2o_data")
+  h2o_full_data = as.h2o(df, destination_frame = "h2o_full_data")
+  h2o_tr_data = as.h2o(tr_data, destination_frame = "h2o_tr_data")
   h2o_test_input_data = as.h2o(dplyr::select(test_data, -price), destination_frame = "h2o_test_input_data")
   h2o_training_input_data = as.h2o(dplyr::select(tr_data, -price), destination_frame = "h2o_training_input_data")
   
@@ -79,11 +80,20 @@ train_test_h2o = function(df, hidden, input_dropout_ratio, hidden_dropout_ratios
                                   epochs = epochs) # max. no. of epochs
   
 
+  deep = as.data.frame(h2o.deepfeatures(h2o_model, h2o_full_data, layer = length(hidden) ) )
+  
+  print(nrow(df))
+  print(nrow(deep))
+  
+  rownames(deep) = rownames(df)
+  
   h2o_predicted_test = h2o.predict(h2o_model, h2o_test_input_data )
   h2o_predicted_training = h2o.predict(h2o_model, h2o_training_input_data )
   
   predicted_test_values = as.data.frame(h2o_predicted_test)
+  rownames(predicted_test_values) = rownames(test_data)
   predicted_training_values = as.data.frame(h2o_predicted_training)
+  rownames(predicted_training_values) = rownames(tr_data)
   
   actual_test_values = dplyr::select(test_data,price)
   actual_training_values = dplyr::select(tr_data,price)
@@ -92,7 +102,7 @@ train_test_h2o = function(df, hidden, input_dropout_ratio, hidden_dropout_ratios
   
   training_cor = cor(predicted_training_values, actual_training_values)
   
-  return(list("training_R" = training_cor,   "test_R" = test_cor, "h2o_model" = h2o_model, "tr_mask" = tr_mask, "predicted_test_values" = predicted_test_values, "actual_test_values" = actual_test_values  ))
+  return(list("training_R" = training_cor,   "test_R" = test_cor, "h2o_model" = h2o_model, "tr_mask" = tr_mask, "predicted_test_values" = predicted_test_values, "actual_test_values" = actual_test_values, "deep" = deep  ))
   
 }
 

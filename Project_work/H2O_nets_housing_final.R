@@ -7,47 +7,30 @@ library(dplyr)
 
 localH2O = h2o.init()
 
-
-print_to_file = function(v)
-{
-  write.table(t(v), file = "./Project_work/parameter-search.csv", sep = ",",  col.names = FALSE, row.names = FALSE, append=TRUE)
-}
-
-
 ###### load up location, price, rooms throw away numerical lat, long 
 
-rm_loc_price = load_location_price_date_type_rooms ()
+rm_loc_price = load_just_location_price()
 
-reduced_loc_price_data_nonum = dplyr::select(rm_loc_price, -num_longitude, -num_latitude, -date_created_bucket)   #get rid of numeric lat long and bedrooms, reorder
+head(rm_loc_price)
 
-reduced_loc_price_data_nonum = reduced_loc_price_data_nonum[,c(c(1:20),c(22:27),21)] 
-
-head(reduced_loc_price_data_nonum)
+loc_price_bin = dplyr::select(rm_loc_price, -num_longitude, -num_latitude)   #get rid of numeric lat long and bedrooms, reorder
   
-choosen_hidden = c(300, 30, 3)
+choosen_hidden = c(30, 30, 3)
 chosen_input_dropout = 0
 chosen_hidden_dropout = c(0,0,0)
 chosen_l1 = 0
 chosen_l2 = 10^(-4)
-chosen_epochs = 500
-
-
-print(choosen_hidden) 
-print(chosen_input_dropout) 
-print(chosen_hidden_dropout) 
-print(chosen_l1) 
-print(chosen_l2) 
-print(chosen_epochs) 
+chosen_epochs = 10
 
 
 
-h2o_test_obj = train_test_h2o(df = reduced_loc_price_data_nonum, 
+h2o_test_obj = train_test_h2o(df = rm_loc_price, 
                               hidden = choosen_hidden,
                               input_dropout_ratio = chosen_input_dropout ,
                               hidden_dropout_ratios = chosen_hidden_dropout ,
                               l1 = chosen_l1 ,
                               l2 = chosen_l2,
-                              train_fraction = 0.75, 
+                              train_fraction = 0.85, 
                               epochs = chosen_epochs
                               )
 
@@ -59,6 +42,7 @@ actual_values = h2o_test_obj[["actual_test_values"]]
 
 ggplot(data = data.frame(predicted, actual_values), aes(x =predicted, y = actual_values ) ) + geom_point(alpha = 0.03) + stat_function(fun = function(x) {x}, color = "red")
 
+head(h2o_test_obj[["deep"]])
 
 
 

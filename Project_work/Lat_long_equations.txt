@@ -1,0 +1,4 @@
+scaled_latitude = (actual_latitude - 50.5)/(1.2)
+
+scaled_longitude = (actual_longitude + 0.1)/(1.4)
+
